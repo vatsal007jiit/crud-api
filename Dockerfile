@@ -8,11 +8,11 @@ COPY package*.json ./
 RUN npm ci --production=false
 
 # Copy prisma and source
-COPY prisma ./prisma
+#COPY prisma ./prisma
 COPY . .
 
 # Generate Prisma client and build
-RUN npx prisma generate
+#RUN npx prisma generate
 RUN npm run build
 
 # production stage
@@ -25,7 +25,7 @@ RUN npm ci --production=true
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+#COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
