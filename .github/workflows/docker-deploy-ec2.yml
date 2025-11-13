@@ -5,7 +5,6 @@ on:
     branches:
       - staging
     paths:
-      - "CB_Admin_v2.0/**"
       - ".github/workflows/docker-deploy-ec2.yml"
 
 jobs:
