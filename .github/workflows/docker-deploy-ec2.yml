@@ -54,10 +54,11 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "${{ secrets.EC2_BACKEND_USER }}@${{ secrets.EC2_BACKEND_HOST }}" <<EOF
           set -euo pipefail
           cd "${{ secrets.EC2_BACKEND_DEPLOY_PATH }}"
-          docker load -i cb-backend.tar
-          # docker image prune -f
-          docker-compose -f docker-compose.yml up -d --force-recreate
-          docker-compose -f docker-compose.yml ps
+          # load image (use sudo)
+          sudo docker load -i cb-backend.tar
+          # use the Compose plugin with sudo
+          sudo docker compose -f docker-compose.yml up -d --force-recreate
+          sudo docker compose -f docker-compose.yml ps
           EOF
 
       - name: Cleanup SSH key locally
