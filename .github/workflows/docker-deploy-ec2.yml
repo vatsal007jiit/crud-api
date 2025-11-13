@@ -25,7 +25,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        working-directory: ./CB_Admin_v2.0
+        working-directory: ./
         run: |
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
@@ -45,7 +45,7 @@ jobs:
           REMOTE="${{ secrets.EC2_BACKEND_USER }}@${{ secrets.EC2_BACKEND_HOST }}"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$REMOTE" "mkdir -p ${{ secrets.EC2_BACKEND_DEPLOY_PATH }}"
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no cb-backend.tar "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/cb-backend.tar"
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no CB_Admin_v2.0/docker-compose.prod.yml "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/docker-compose.yml"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no docker-compose.prod.yml "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/docker-compose.yml"
           printf '%s\n' "${{ secrets.BACKEND_ENV }}" > .env.deploy
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no .env.deploy "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/.env"
           rm -f .env.deploy
