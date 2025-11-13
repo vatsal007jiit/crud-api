@@ -11,4 +11,4 @@
 - `"ext"`: Only triggers reloads for `.ts` files
 - `"exec"`: Runs the command `ts-node src/index.ts` on each restart
 
-ch1
+ch22
