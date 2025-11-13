@@ -1,0 +1,69 @@
+name: Build Docker image and Deploy to EC2 (staging)
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - "CB_Admin_v2.0/**"
+      - ".github/workflows/docker-deploy-ec2.yml"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: cb-backend
+      IMAGE_TAG: staging
+      COMPOSE_CMD: docker-compose
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: ./CB_Admin_v2.0
+        run: |
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Save Docker image to tar
+        run: |
+          docker save $IMAGE_NAME:$IMAGE_TAG -o cb-backend.tar
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_BACKEND_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_BACKEND_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy image tar, compose file and .env to EC2
+        run: |
+          REMOTE="${{ secrets.EC2_BACKEND_USER }}@${{ secrets.EC2_BACKEND_HOST }}"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$REMOTE" "mkdir -p ${{ secrets.EC2_BACKEND_DEPLOY_PATH }}"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no cb-backend.tar "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/cb-backend.tar"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no CB_Admin_v2.0/docker-compose.prod.yml "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/docker-compose.yml"
+          printf '%s\n' "${{ secrets.BACKEND_ENV }}" > .env.deploy
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no .env.deploy "$REMOTE:${{ secrets.EC2_BACKEND_DEPLOY_PATH }}/.env"
+          rm -f .env.deploy
+          rm -f cb-backend.tar
+
+      - name: Load image on EC2 and restart services
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "${{ secrets.EC2_BACKEND_USER }}@${{ secrets.EC2_BACKEND_HOST }}" <<EOF
+          set -euo pipefail
+          cd "${{ secrets.EC2_BACKEND_DEPLOY_PATH }}"
+          docker load -i cb-backend.tar
+          # docker image prune -f
+          docker-compose -f docker-compose.yml up -d --force-recreate
+          docker-compose -f docker-compose.yml ps
+          EOF
+
+      - name: Cleanup SSH key locally
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
