@@ -32,7 +32,7 @@ export const login = async (req: Request, res: Response) =>{
         }
         const token = jwt.sign(payload, process.env.JWT_SECRET!, {expiresIn: '7d'})
         res.json({
-            message: "Signup Successful",
+            message: "Login Successful",
             token
         })
     } 
